@@ -107,8 +107,8 @@ def load_config() -> Config:
     config = Config()
     
     # 服务配置
-    config.port = _get_env_int("PORT", file_config.get("port", config.port))
-    config.host = _get_env("HOST", file_config.get("host", config.host))
+    config.port = _get_env_int("CF_SERVICE_PORT", _get_env_int("PORT", file_config.get("port", config.port)))
+    config.host = _get_env("CF_SERVICE_HOST", _get_env("HOST", file_config.get("host", config.host)))
     
     # 认证配置
     config.password = _get_env("CF_SERVICE_PASSWORD", file_config.get("password", ""))

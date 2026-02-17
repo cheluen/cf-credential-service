@@ -270,10 +270,11 @@ class CFCredentialService:
                         pass
                 
         except Exception as e:
-            logger.error(f"Failed to get credentials: {e}")
+            error_msg = self._sanitize_error(str(e))
+            logger.error(f"Failed to get credentials: {error_msg}")
             return CredentialResponse(
                 success=False,
-                error=str(e),
+                error=error_msg,
             )
     
     async def _wait_for_cf_challenge(self, page, timeout: int = 30) -> str:
@@ -348,6 +349,32 @@ class CFCredentialService:
             netloc = f"{netloc}:{parsed.port}"
         scheme = parsed.scheme or "http"
         return f"{scheme}://{netloc}"
+    
+    @staticmethod
+    def _sanitize_error(error_msg: str) -> str:
+        """清理错误消息中的敏感信息"""
+        import re
+        result = error_msg
+        # 隐藏代理 URL 中的认证信息
+        result = re.sub(
+            r'(https?://|socks5://)([^:]+):([^@]+)@',
+            r'\1***:***@',
+            result
+        )
+        # 隐藏 cf_clearance 值
+        result = re.sub(
+            r'cf_clearance[=:\s]+[^\s;]+',
+            'cf_clearance=***',
+            result
+        )
+        # 隐藏密码
+        result = re.sub(
+            r'(password|passwd|pwd)[=:]\s*\S+',
+            r'\1=***',
+            result,
+            flags=re.IGNORECASE
+        )
+        return result
     
     @staticmethod
     def _create_proxy_auth_extension(proxy_url: str) -> Optional[str]:

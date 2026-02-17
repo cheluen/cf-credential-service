@@ -6,23 +6,27 @@
 #                                                           #
 #  请求参数 > 环境变量 > 配置文件 > 默认值                    #
 #                                                           #
-#  重要：proxy 和 user_agent 应由请求方（grok2api）传入，     #
+#  重要：proxy 和 user_agent 应由请求方传入，                 #
 #  确保 CF 服务和请求方使用相同的代理和 UA，                  #
 #  这样获取的 cf_clearance 才能被请求方使用。                 #
 #############################################################
 
 # ============ 服务配置 ============
-port = 20001
+# 端口也可以通过环境变量 CF_SERVICE_PORT 设置
+port = 8080
 host = "0.0.0.0"
 
 # ============ 认证配置 ============
-# API 访问密码，不设置则不需要认证
-password = "cheluen"
+# API 访问密码（Basic Auth，用户名任意）
+# 也可以通过环境变量 CF_SERVICE_PASSWORD 设置
+password = "your_secure_password_here"
 
 # ============ 浏览器配置 ============
-# 这些是 CF 服务自身的配置，与请求方无关
 headless = true
-chrome_version = "chrome136"  # TLS 指纹版本
+chrome_version = "chrome136"  # TLS 指纹版本 (chrome134/135/136/137)
+
+# 浏览器路径（可选，默认自动检测）
+# browser_path = "/usr/bin/chromium"
 
 # ============ 默认值配置 ============
 # 以下值仅在请求方未传入时使用

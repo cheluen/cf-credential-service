@@ -43,8 +43,15 @@ python main.py
 |------|------|--------|
 | `CF_SERVICE_PORT` | 服务端口 | 8080 |
 | `CF_SERVICE_HOST` | 监听地址 | 0.0.0.0 |
-| `CF_SERVICE_PASSWORD` | API 认证密码 | - |
-| `CHROME_BIN` | Chrome/Chromium 路径 | 自动检测 |
+| `CF_SERVICE_PASSWORD` | API 认证密码（用户名任意） | - |
+| `CF_BROWSER_PATH` | Chrome/Chromium 路径 | 自动检测 |
+| `CF_HEADLESS` | 无头模式 | true |
+| `CF_CHROME_VERSION` | Chrome 版本 | chrome136 |
+| `CF_DEFAULT_PROXY` | 默认代理 | - |
+| `CF_DEFAULT_USER_AGENT` | 默认 User-Agent | - |
+| `CF_DEFAULT_TIMEOUT` | 默认超时时间 | 90 |
+
+> **认证说明**：Basic Auth 只验证密码，用户名可以是任意值。例如：`api:password` 或 `admin:password` 都可以通过认证。
 
 ### 配置文件
 

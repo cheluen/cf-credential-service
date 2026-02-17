@@ -123,6 +123,16 @@ async def get_credentials(request: CredentialRequest, auth: bool = Depends(verif
     
     logger.info(f"Received credential request for: {request.target_url}")
     
+    # 脱敏：记录代理信息时隐藏认证
+    if request.context and request.context.proxy:
+        import re
+        proxy_display = re.sub(
+            r'(https?://|socks5://)([^:]+):([^@]+)@',
+            r'\1***:***@',
+            request.context.proxy
+        )
+        logger.info(f"Request proxy: {proxy_display[:40]}...")
+    
     response = await service.get_credentials(
         target_url=request.target_url,
         context=request.context,
