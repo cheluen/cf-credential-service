@@ -38,7 +38,7 @@ pip install -r requirements.txt
 
 # 方式一：使用配置文件
 cp config.example.toml config.toml
-# 编辑 config.toml 设置 api_key、default_proxy 等
+# 编辑 config.toml
 python main.py
 
 # 方式二：使用环境变量
@@ -57,11 +57,11 @@ python main.py
 |------|------|--------|
 | `CF_SERVICE_PORT` | 服务端口 | 20001 |
 | `CF_SERVICE_HOST` | 监听地址 | 0.0.0.0 |
-| `CF_SERVICE_API_KEY` | API Key（请求时通过 X-API-Key 头传递） | - |
-| `CF_SERVICE_PROXY` | 默认代理（调用者未传入时使用） | - |
+| `CF_SERVICE_API_KEY` | API Key | - |
+| `CF_SERVICE_PROXY` | 默认代理 | - |
 | `CF_BROWSER_PATH` | Chrome/Chromium 路径 | 自动检测 |
 | `CF_HEADLESS` | 无头模式 | true |
-| `CF_DEFAULT_TIMEOUT` | 默认超时时间 | 90 |
+| `CF_DEFAULT_TIMEOUT` | 默认超时时间（秒） | 90 |
 
 ### 配置文件
 
@@ -72,18 +72,42 @@ python main.py
 port = 20001
 host = "0.0.0.0"
 
-# API Key 认证
+# API Key（通过 X-API-Key 请求头传递）
 api_key = "your_api_key_here"
 
-# 默认代理（确保调用者使用相同代理）
+# 默认代理（调用者未传入时使用）
 default_proxy = "http://user:pass@proxy_host:proxy_port"
 
 # 浏览器配置
 headless = true
+# browser_path = "/usr/bin/chromium"
+
+# 超时配置
 default_timeout = 90
 ```
 
+配置文件搜索路径：
+1. `./config.toml` 或 `./config.json`
+2. `~/.cf-service/config.toml` 或 `~/.cf-service/config.json`
+3. `/etc/cf-service/config.toml` 或 `/etc/cf-service/config.json`
+
 ## API 接口
+
+### 健康检查（无需认证）
+
+```http
+GET /health
+```
+
+响应：
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "browser_available": true,
+  "active_sessions": 0
+}
+```
 
 ### 获取凭证
 
@@ -101,14 +125,15 @@ X-API-Key: your_api_key
 }
 ```
 
-**context 参数说明：**
+**context 参数：**
 
-| 参数 | 必填 | 说明 |
-|------|------|------|
-| `proxy` | 推荐传入 | 代理地址，不传则使用服务端默认配置。**必须与后续请求使用相同代理** |
-| `browser` | 推荐传入 | TLS 指纹版本：chrome134/135/136/137。**必须与 curl_cffi impersonate 参数一致** |
-| `user_agent` | 否 | User-Agent，不传则根据 browser 自动设置 |
-| `timeout` | 否 | 超时时间（秒），默认 90 |
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `proxy` | string | 推荐传入 | 代理地址，必须与后续请求使用相同代理 |
+| `browser` | string | 推荐传入 | TLS 指纹版本：`chrome134`/`chrome135`/`chrome136`/`chrome137` |
+| `user_agent` | string | 否 | User-Agent，不传则根据 browser 自动设置 |
+| `timeout` | int | 否 | 超时时间（秒），默认 90，范围 5-120 |
+| `existing_cookies` | object | 否 | 已有 cookies，会在访问前注入 |
 
 **响应：**
 
@@ -120,14 +145,37 @@ X-API-Key: your_api_key
   "cookie_string": "cf_clearance=abc123...; ...",
   "user_agent": "Mozilla/5.0 ...",
   "browser": "chrome136",
-  "expires_at": 1708089600.0
+  "expires_at": 1708089600.0,
+  "challenge_type": "js_challenge",
+  "error": null
 }
 ```
 
-### 健康检查
+**响应字段：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `success` | bool | 是否成功 |
+| `cf_clearance` | string | CF Clearance cookie |
+| `cookies` | object | 完整 cookies 字典 |
+| `cookie_string` | string | Cookie 字符串，可直接用于请求头 |
+| `user_agent` | string | 实际使用的 User-Agent |
+| `browser` | string | 实际使用的 TLS 指纹版本 |
+| `expires_at` | float | 预计过期时间戳 |
+| `challenge_type` | string | 挑战类型：`js_challenge`/`turnstile`/`none` |
+| `error` | string | 错误信息 |
+
+### 简化接口
 
 ```http
-GET /health
+POST /api/v1/credentials/simple?target_url=https://example.com&proxy=http://proxy:8080&browser=chrome136
+X-API-Key: your_api_key
+```
+
+### 浏览器状态
+
+```http
+GET /browser/status
 ```
 
 ## 使用示例
@@ -174,7 +222,7 @@ response = session.get(
 
 1. **三要素一致**：proxy、browser 必须与后续请求完全一致
 2. **browser 参数**：对应 curl_cffi 的 `impersonate` 参数，决定 TLS 指纹
-3. **代理认证**：支持 `http://user:pass@host:port` 格式的代理
+3. **代理认证**：支持 `http://user:pass@host:port` 格式
 4. **凭证时效**：cf_clearance 通常有效期 30 分钟
 
 ## 部署
