@@ -225,21 +225,6 @@ response = session.get(
 3. **代理认证**：支持 `http://user:pass@host:port` 格式
 4. **凭证时效**：cf_clearance 通常有效期 30 分钟
 
-## 部署
-
-### Hugging Face Spaces
-
-```Dockerfile
-FROM ghcr.io/cheluen/cf-credential-service:latest
-ENV CF_SERVICE_API_KEY=your_api_key
-ENV CF_SERVICE_PROXY=http://user:pass@proxy:8080
-EXPOSE 7860
-```
-
-### Render / Railway
-
-直接连接 GitHub 仓库，选择 Docker 构建，设置环境变量。
-
 ## License
 
 MIT
