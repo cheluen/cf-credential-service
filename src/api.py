@@ -29,7 +29,7 @@ config: Optional[Config] = None
 
 def verify_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")):
     """验证 API Key"""
-    if not config or not config.password:
+    if not config or not config.api_key:
         return True
     
     if not x_api_key:
@@ -38,7 +38,7 @@ def verify_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")):
             detail="Missing API key. Use X-API-Key header.",
         )
     
-    if not secrets.compare_digest(x_api_key, config.password):
+    if not secrets.compare_digest(x_api_key, config.api_key):
         raise HTTPException(
             status_code=401,
             detail="Invalid API key",
@@ -54,10 +54,8 @@ async def lifespan(app: FastAPI):
     config = get_config()
     service = get_service()
     logger.info(f"CF Credential Service started on {config.host}:{config.port}")
-    if config.password:
+    if config.api_key:
         logger.info("API key authentication enabled")
-    if config.default_proxy:
-        logger.info("Default proxy configured")
     yield
     logger.info("CF Credential Service stopped")
 

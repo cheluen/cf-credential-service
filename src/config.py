@@ -15,23 +15,16 @@ class Config:
     """服务配置"""
     
     # 服务配置
-    port: int = 20001
+    port: int = 8080
     host: str = "0.0.0.0"
     
-    # 认证配置
-    password: str = ""
+    # API Key 认证
+    api_key: str = ""
     
     # 浏览器配置
     browser_path: Optional[str] = None
     headless: bool = True
-    chrome_version: str = "chrome136"
     
-    # 默认代理
-    default_proxy: str = ""
-    
-    # 默认 User-Agent
-    default_user_agent: str = ""
-
     # 超时配置
     default_timeout: int = 90
 
@@ -107,22 +100,15 @@ def load_config() -> Config:
     config = Config()
     
     # 服务配置
-    config.port = _get_env_int("CF_SERVICE_PORT", _get_env_int("PORT", file_config.get("port", config.port)))
-    config.host = _get_env("CF_SERVICE_HOST", _get_env("HOST", file_config.get("host", config.host)))
+    config.port = _get_env_int("CF_SERVICE_PORT", file_config.get("port", config.port))
+    config.host = _get_env("CF_SERVICE_HOST", file_config.get("host", config.host))
     
-    # 认证配置
-    config.password = _get_env("CF_SERVICE_PASSWORD", file_config.get("password", ""))
+    # API Key 认证
+    config.api_key = _get_env("CF_SERVICE_API_KEY", file_config.get("api_key", ""))
     
     # 浏览器配置
     config.browser_path = _get_env("CF_BROWSER_PATH", file_config.get("browser_path", "")) or None
     config.headless = _get_env_bool("CF_HEADLESS", file_config.get("headless", True))
-    config.chrome_version = _get_env("CF_CHROME_VERSION", file_config.get("chrome_version", "chrome136"))
-    
-    # 默认代理
-    config.default_proxy = _get_env("CF_DEFAULT_PROXY", file_config.get("default_proxy", ""))
-    
-    # 默认 User-Agent
-    config.default_user_agent = _get_env("CF_DEFAULT_USER_AGENT", file_config.get("default_user_agent", ""))
     
     # 超时配置
     config.default_timeout = _get_env_int("CF_DEFAULT_TIMEOUT", file_config.get("default_timeout", 90))

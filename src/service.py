@@ -47,15 +47,11 @@ class CFCredentialService:
         self,
         browser_path: Optional[str] = None,
         headless: bool = True,
-        chrome_version: str = "chrome136",
     ):
         config = get_config()
         
         self.browser_path = browser_path or config.browser_path or self._find_browser()
         self.headless = headless if headless != True else config.headless
-        self.chrome_version = chrome_version if chrome_version != "chrome136" else config.chrome_version
-        self.default_proxy = config.default_proxy
-        self.default_user_agent = config.default_user_agent
         self.default_timeout = config.default_timeout
         
         self._page = None
@@ -75,26 +71,17 @@ class CFCredentialService:
     def _get_default_context(self) -> Dict[str, Any]:
         """获取默认上下文配置"""
         return {
-            "user_agent": _DEFAULT_USER_AGENTS.get(self.chrome_version, _DEFAULT_USER_AGENTS["chrome136"]),
-            "sec_ch_ua": _DEFAULT_SEC_CH_UA.get(self.chrome_version, _DEFAULT_SEC_CH_UA["chrome136"]),
             "accept_language": "en-US,en;q=0.9",
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "browser": self.chrome_version,
         }
     
     def _merge_context(self, context: Optional[BrowserContext]) -> Dict[str, Any]:
         """合并用户上下文和默认上下文"""
         defaults = self._get_default_context()
-        
-        # 应用配置文件的默认值（仅当请求方未传入时）
-        if self.default_proxy:
-            defaults["proxy"] = self.default_proxy
-        if self.default_user_agent:
-            defaults["user_agent"] = self.default_user_agent
-        if self.default_timeout:
-            defaults["timeout"] = self.default_timeout
+        defaults["timeout"] = self.default_timeout
         
         if context is None:
+            logger.warning("No context provided, proxy and browser are required!")
             return defaults
         
         merged = defaults.copy()
@@ -102,15 +89,25 @@ class CFCredentialService:
         # 核心匹配参数（必须由请求方传入）
         if context.proxy:
             merged["proxy"] = context.proxy
-        if context.user_agent:
-            merged["user_agent"] = context.user_agent
+        else:
+            logger.warning("No proxy provided! CF credential may not work correctly.")
+        
         if context.browser:
             merged["browser"] = context.browser
-            # 同步更新 UA 和 sec_ch_ua 以匹配 browser 版本
+            # 根据 browser 设置对应的 UA 和 sec_ch_ua
             if context.browser in _DEFAULT_USER_AGENTS:
                 merged["user_agent"] = _DEFAULT_USER_AGENTS[context.browser]
             if context.browser in _DEFAULT_SEC_CH_UA:
                 merged["sec_ch_ua"] = _DEFAULT_SEC_CH_UA[context.browser]
+        else:
+            logger.warning("No browser provided! Using chrome136 as default.")
+            merged["browser"] = "chrome136"
+            merged["user_agent"] = _DEFAULT_USER_AGENTS["chrome136"]
+            merged["sec_ch_ua"] = _DEFAULT_SEC_CH_UA["chrome136"]
+        
+        # 可选：覆盖 UA（一般不需要，browser 会自动设置）
+        if context.user_agent:
+            merged["user_agent"] = context.user_agent
         
         # 其他 headers
         if context.accept_language:
