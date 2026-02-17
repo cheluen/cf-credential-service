@@ -7,7 +7,7 @@ CF Credential Service 配置管理
 import os
 from pathlib import Path
 from typing import Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -15,11 +15,14 @@ class Config:
     """服务配置"""
     
     # 服务配置
-    port: int = 8080
+    port: int = 20001
     host: str = "0.0.0.0"
     
     # API Key 认证
     api_key: str = ""
+    
+    # 默认代理（调用者未传入时使用）
+    default_proxy: str = ""
     
     # 浏览器配置
     browser_path: Optional[str] = None
@@ -105,6 +108,9 @@ def load_config() -> Config:
     
     # API Key 认证
     config.api_key = _get_env("CF_SERVICE_API_KEY", file_config.get("api_key", ""))
+    
+    # 默认代理
+    config.default_proxy = _get_env("CF_SERVICE_PROXY", file_config.get("default_proxy", ""))
     
     # 浏览器配置
     config.browser_path = _get_env("CF_BROWSER_PATH", file_config.get("browser_path", "")) or None

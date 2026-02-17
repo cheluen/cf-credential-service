@@ -9,7 +9,7 @@ CF 凭证（cf_clearance）与以下因素绑定：
 2. **User-Agent** - 浏览器标识
 3. **TLS 指纹** - 浏览器 SSL/TLS 握手特征
 
-**调用者必须确保**：获取凭证时使用的 proxy、user_agent、browser 参数，与后续请求时完全一致，凭证才能生效。
+**调用者必须确保**：获取凭证时使用的 proxy、browser 参数，与后续请求时完全一致，凭证才能生效。
 
 ## 功能特性
 
@@ -25,8 +25,9 @@ CF 凭证（cf_clearance）与以下因素绑定：
 
 ```bash
 docker run -d \
-  -p 8080:8080 \
+  -p 20001:20001 \
   -e CF_SERVICE_API_KEY=your_api_key \
+  -e CF_SERVICE_PROXY=http://user:pass@proxy:8080 \
   ghcr.io/cheluen/cf-credential-service:latest
 ```
 
@@ -34,22 +35,53 @@ docker run -d \
 
 ```bash
 pip install -r requirements.txt
-CF_SERVICE_API_KEY=your_api_key python main.py
+
+# 方式一：使用配置文件
+cp config.example.toml config.toml
+# 编辑 config.toml 设置 api_key、default_proxy 等
+python main.py
+
+# 方式二：使用环境变量
+CF_SERVICE_API_KEY=your_api_key \
+CF_SERVICE_PROXY=http://user:pass@proxy:8080 \
+python main.py
 ```
 
 ## 配置
 
+配置优先级：**环境变量 > 配置文件 > 默认值**
+
 ### 环境变量
 
-| 变量 | 说明 | ���认值 |
+| 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `CF_SERVICE_PORT` | 服务端口 | 8080 |
+| `CF_SERVICE_PORT` | 服务端口 | 20001 |
 | `CF_SERVICE_HOST` | 监听地址 | 0.0.0.0 |
 | `CF_SERVICE_API_KEY` | API Key（请求时通过 X-API-Key 头传递） | - |
+| `CF_SERVICE_PROXY` | 默认代理（调用者未传入时使用） | - |
 | `CF_BROWSER_PATH` | Chrome/Chromium 路径 | 自动检测 |
 | `CF_HEADLESS` | 无头模式 | true |
+| `CF_DEFAULT_TIMEOUT` | 默认超时时间 | 90 |
 
-> **注意**：不要在服务端配置 proxy、user_agent、browser。这些参数必须由调用者传入，确保与调用者后续请求一致。
+### 配置文件
+
+复制 `config.example.toml` 为 `config.toml`：
+
+```toml
+# 服务配置
+port = 20001
+host = "0.0.0.0"
+
+# API Key 认证
+api_key = "your_api_key_here"
+
+# 默认代理（确保调用者使用相同代理）
+default_proxy = "http://user:pass@proxy_host:proxy_port"
+
+# 浏览器配置
+headless = true
+default_timeout = 90
+```
 
 ## API 接口
 
@@ -73,8 +105,8 @@ X-API-Key: your_api_key
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `proxy` | **是** | 代理地址，调用者后续请求必须使用相同代理 |
-| `browser` | **是** | TLS 指纹版本：chrome134/135/136/137，调用者后续请求必须使用相同的 impersonate 参数 |
+| `proxy` | 推荐传入 | 代理地址，不传则使用服务端默认配置。**必须与后续请求使用相同代理** |
+| `browser` | 推荐传入 | TLS 指纹版本：chrome134/135/136/137。**必须与 curl_cffi impersonate 参数一致** |
 | `user_agent` | 否 | User-Agent，不传则根据 browser 自动设置 |
 | `timeout` | 否 | 超时时间（秒），默认 90 |
 
@@ -106,13 +138,13 @@ GET /health
 import httpx
 from curl_cffi import requests
 
-# 调用者的配置
+# 调用者的配置（必须与后续请求一致）
 PROXY = "http://proxy_user:proxy_pass@proxy_host:8080"
 BROWSER = "chrome136"
 
 # 1. 获取 CF 凭证
 resp = httpx.post(
-    "http://cf-service:8080/api/v1/credentials",
+    "http://cf-service:20001/api/v1/credentials",
     json={
         "target_url": "https://target-site.com",
         "context": {
@@ -140,7 +172,7 @@ response = session.get(
 
 ## 关键注意事项
 
-1. **三要素一致**：proxy、browser、user_agent 必须与后续请求完全一致
+1. **三要素一致**：proxy、browser 必须与后续请求完全一致
 2. **browser 参数**：对应 curl_cffi 的 `impersonate` 参数，决定 TLS 指纹
 3. **代理认证**：支持 `http://user:pass@host:port` 格式的代理
 4. **凭证时效**：cf_clearance 通常有效期 30 分钟
@@ -152,12 +184,13 @@ response = session.get(
 ```Dockerfile
 FROM ghcr.io/cheluen/cf-credential-service:latest
 ENV CF_SERVICE_API_KEY=your_api_key
+ENV CF_SERVICE_PROXY=http://user:pass@proxy:8080
 EXPOSE 7860
 ```
 
 ### Render / Railway
 
-直接连接 GitHub 仓库，选择 Docker 构建，设置环境变量 `CF_SERVICE_API_KEY`。
+直接连接 GitHub 仓库，选择 Docker 构建，设置环境变量。
 
 ## License
 

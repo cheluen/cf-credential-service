@@ -52,6 +52,7 @@ class CFCredentialService:
         
         self.browser_path = browser_path or config.browser_path or self._find_browser()
         self.headless = headless if headless != True else config.headless
+        self.default_proxy = config.default_proxy
         self.default_timeout = config.default_timeout
         
         self._page = None
@@ -80,16 +81,21 @@ class CFCredentialService:
         defaults = self._get_default_context()
         defaults["timeout"] = self.default_timeout
         
+        # 服务端默认代理（仅当调用者未传入时使用）
+        if self.default_proxy:
+            defaults["proxy"] = self.default_proxy
+        
         if context is None:
-            logger.warning("No context provided, proxy and browser are required!")
+            if not defaults.get("proxy"):
+                logger.warning("No proxy configured! CF credential may not work correctly.")
             return defaults
         
         merged = defaults.copy()
         
-        # 核心匹配参数（必须由请求方传入）
+        # 核心匹配参数（调用者传入优先）
         if context.proxy:
             merged["proxy"] = context.proxy
-        else:
+        elif not merged.get("proxy"):
             logger.warning("No proxy provided! CF credential may not work correctly.")
         
         if context.browser:
