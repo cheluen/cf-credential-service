@@ -9,9 +9,8 @@ import secrets
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Depends, Security
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from .models import (
     CredentialRequest,
@@ -26,27 +25,23 @@ logger = logging.getLogger(__name__)
 
 service: Optional[CFCredentialService] = None
 config: Optional[Config] = None
-security = HTTPBasic(auto_error=False)
 
 
-def verify_auth(credentials: Optional[HTTPBasicCredentials] = Security(security)):
-    """验证 Basic Auth"""
+def verify_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")):
+    """验证 API Key"""
     if not config or not config.password:
         return True
     
-    if not credentials:
+    if not x_api_key:
         raise HTTPException(
             status_code=401,
-            detail="Missing authentication",
-            headers={"WWW-Authenticate": "Basic"},
+            detail="Missing API key. Use X-API-Key header.",
         )
     
-    correct_password = secrets.compare_digest(credentials.password, config.password)
-    if not correct_password:
+    if not secrets.compare_digest(x_api_key, config.password):
         raise HTTPException(
             status_code=401,
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
+            detail="Invalid API key",
         )
     
     return True
@@ -60,9 +55,9 @@ async def lifespan(app: FastAPI):
     service = get_service()
     logger.info(f"CF Credential Service started on {config.host}:{config.port}")
     if config.password:
-        logger.info("Authentication enabled")
+        logger.info("API key authentication enabled")
     if config.default_proxy:
-        logger.info(f"Default proxy configured")
+        logger.info("Default proxy configured")
     yield
     logger.info("CF Credential Service stopped")
 
@@ -95,7 +90,7 @@ async def health_check():
 
 
 @app.post("/api/v1/credentials", response_model=CredentialResponse, tags=["凭证"])
-async def get_credentials(request: CredentialRequest, auth: bool = Depends(verify_auth)):
+async def get_credentials(request: CredentialRequest, auth: bool = Depends(verify_api_key)):
     """
     获取 CF 凭证
     
@@ -150,7 +145,7 @@ async def get_credentials_simple(
     proxy: Optional[str] = None,
     user_agent: Optional[str] = None,
     timeout: int = 30,
-    auth: bool = Depends(verify_auth),
+    auth: bool = Depends(verify_api_key),
 ):
     """
     简化的凭证获取接口（GET 参数方式）

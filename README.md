@@ -43,7 +43,7 @@ python main.py
 |------|------|--------|
 | `CF_SERVICE_PORT` | 服务端口 | 8080 |
 | `CF_SERVICE_HOST` | 监听地址 | 0.0.0.0 |
-| `CF_SERVICE_PASSWORD` | API 认证密码（用户名任意） | - |
+| `CF_SERVICE_PASSWORD` | API Key（通过 X-API-Key 头传递） | - |
 | `CF_BROWSER_PATH` | Chrome/Chromium 路径 | 自动检测 |
 | `CF_HEADLESS` | 无头模式 | true |
 | `CF_CHROME_VERSION` | Chrome 版本 | chrome136 |
@@ -51,7 +51,7 @@ python main.py
 | `CF_DEFAULT_USER_AGENT` | 默认 User-Agent | - |
 | `CF_DEFAULT_TIMEOUT` | 默认超时时间 | 90 |
 
-> **认证说明**：Basic Auth 只验证密码，用户名可以是任意值。例如：`api:password` 或 `admin:password` 都可以通过认证。
+> **认证说明**：使用 `X-API-Key` 请求头传递 API Key，无需用户名。
 
 ### 配置文件
 
@@ -73,7 +73,7 @@ default_timeout = 90
 ```http
 POST /api/v1/credentials
 Content-Type: application/json
-Authorization: Basic base64(user:password)
+X-API-Key: your_api_key
 
 {
   "target_url": "https://example.com",
@@ -125,7 +125,7 @@ resp = httpx.post(
             "browser": "chrome136"
         }
     },
-    auth=("api", "your_password")
+    headers={"X-API-Key": "your_api_key"}
 )
 credentials = resp.json()
 
