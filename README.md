@@ -2,7 +2,33 @@
 
 Cloudflare 凭证解析服务 - 使用 DrissionPage 自动通过 CF 人机验证获取凭证。
 
-## 核心原理
+## 支持的 Cloudflare 验证类型
+
+本项目支持以下两种 Cloudflare 人机验证：
+
+| 验证类型 | 说明 | 检测特征 |
+|---------|------|---------|
+| **JS Challenge** | 传统 Cloudflare JavaScript 挑战页面，页面显示"Checking your browser before accessing" | HTML 包含 `challenge-running` 或 `cf-challenge-running` |
+| **Turnstile** | Cloudflare 新一代验证码组件，类似 reCAPTCHA 的交互式验证 | HTML 包含 `turnstile` 或 `challenges.cloudflare.com` |
+
+**不支持**：Cloudflare CAPTCHA（图片验证码）、Managed Challenge（托管挑战）等需要人工交互的高���验证。
+
+## 实现原理
+
+### 验证通过机制
+
+1. **真实浏览器环境**：使用 DrissionPage 控制真实 Chrome/Chromium 浏览器，而非无头浏览器的自动化检测绕过
+2. **浏览器指纹伪装**：
+   - 设置 `--disable-blink-features=AutomationControlled` 隐藏自动化特征
+   - 配置真实 Chrome 版本的 User-Agent (chrome134/135/136/137)
+   - 保持一致的 TLS 指纹
+3. **验证检测循环**：
+   - 持续检测页面 HTML 中的验证特征标识
+   - 等待 `cf_clearance` cookie 生成或验证页面消失
+   - 超时机制防止无限等待
+4. **Cookie 提取**：验证通过后提取 `cf_clearance` 及相关 cookies
+
+### 核心原理
 
 CF 凭证（cf_clearance）与以下因素绑定：
 1. **出口 IP** - 获取凭证时的代理出口 IP
