@@ -11,7 +11,7 @@ Cloudflare 凭证解析服务 - 使用 DrissionPage 自动通过 CF 人机验证
 | **JS Challenge** | 传统 Cloudflare JavaScript 挑战页面，页面显示"Checking your browser before accessing" | HTML 包含 `challenge-running` 或 `cf-challenge-running` |
 | **Turnstile** | Cloudflare 新一代验证码组件，类似 reCAPTCHA 的交互式验证 | HTML 包含 `turnstile` 或 `challenges.cloudflare.com` |
 
-**不支持**：Cloudflare CAPTCHA（图片验证码）、Managed Challenge（托管挑战）等需要人工交互的高���验证。
+**不支持**：Cloudflare CAPTCHA（图片验证码）、Managed Challenge（托管挑战）等需要人工交互的高难度验证。
 
 ## 实现原理
 
